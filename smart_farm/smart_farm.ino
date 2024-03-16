@@ -1,3 +1,5 @@
+#include <Servo.h>
+
 #include <ArduinoJson.h>
 
 #include <Key.h>
@@ -20,12 +22,14 @@ DHT dht(DHT_Out, DHT11);
 #define PIR_Light 19
 int light_value = 0;
 
-#define Door_Servo 14
+Servo Door_Servo;
+int Door_Pos = 0;
 
 #define MQ_Out A0
-#define Window_Servo 15
+Servo Window_Servo;
 #define Fan_Out 18
 #define MQ_Led 17
+int Window_Pos = 0;
 
 void setup() {
   dht.begin();
@@ -37,13 +41,18 @@ void setup() {
   pinMode(PIR_Led, OUTPUT);
   pinMode(PIR_Button, INPUT_PULLUP);
   pinMode(PIR_Light, OUTPUT);
+
+  Door_Servo.attach(12);
+
+  pinMode(MQ_Out, INPUT);
+  Window_Servo.attach(13);
 }
 
 void getDHT(float &temp, float &hum)
 {
   hum = dht.readHumidity();
   temp = dht.readTemperature();
-  Serial.println(temp);
+  //Serial.println(temp);
   if(temp>=30)
     digitalWrite(DHT_Fan, HIGH);
   else
@@ -80,9 +89,34 @@ void getPIR()
   while(digitalRead(PIR_Button)==LOW);
 }
 
+void getMQ(float &value)
+{
+  value = analogRead(MQ_Out);
+  if(value >= 500)
+  {
+    for (Window_Pos = 0; Window_Pos <= 180; Window_Pos += 1) 
+    {
+      Window_Servo.write(Window_Pos);
+      delay(15);             
+    }
+    break;
+  }
+  else
+  {
+    for (Window_Pos = 180; Window_Pos >= 0; Window_Pos -= 1) 
+    {
+      Window_Servo.write(Window_Pos);
+      delay(15);             
+    }
+    break;
+  }
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
-  float t, h;
+  float t, h, g;
   getDHT(t, h);
   getPIR();
+  getMQ(g);
+  Serial.println(g);
 }
