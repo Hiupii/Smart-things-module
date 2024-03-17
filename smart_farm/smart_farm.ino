@@ -9,43 +9,45 @@
 #include <DHT_U.h>
 
 
-
-#define DHT_Out 2
+#define DHT_Data 2
 #define Temp_Led 3
 #define DHT_Fan 16
 
-DHT dht(DHT_Out, DHT11);
+DHT dht(DHT_Data, DHT11);
 
-#define PIR_Out 4
+#define PIR_Data 4
 #define PIR_Led 5
 #define PIR_Button 6
 #define PIR_Light 19
 int light_value = 0;
 
 Servo Door_Servo;
-int Door_Pos = 0;
+bool Door_Pos = true;
 
-#define MQ_Out A0
+#define MQ_Data A0
 Servo Window_Servo;
-#define Fan_Out 18
+#define MQ_Fan 18
 #define MQ_Led 17
-int Window_Pos = 0;
+bool Window_Pos = true;
 
-void setup() {
+void setup() 
+{
   dht.begin();
   pinMode(DHT_Fan, OUTPUT);
   pinMode(Temp_Led, OUTPUT);
   Serial.begin(9600);
 
-  pinMode(PIR_Out, INPUT_PULLUP);
+  pinMode(PIR_Data, INPUT_PULLUP);
   pinMode(PIR_Led, OUTPUT);
   pinMode(PIR_Button, INPUT_PULLUP);
   pinMode(PIR_Light, OUTPUT);
 
-  Door_Servo.attach(12);
+  Door_Servo.attach(14);
 
-  pinMode(MQ_Out, INPUT);
-  Window_Servo.attach(13);
+  pinMode(MQ_Data, INPUT);
+  Window_Servo.attach(15);
+  pinMode(MQ_Fan, OUTPUT);
+  pinMode(MQ_Led, OUTPUT);
 }
 
 void getDHT(float &temp, float &hum)
@@ -65,22 +67,28 @@ void getDHT(float &temp, float &hum)
 
 void getPIR()
 {
-  if(digitalRead(PIR_Out)==HIGH) {
+  if(digitalRead(PIR_Data)==HIGH) 
+  {
     digitalWrite(PIR_Led, LOW);
-  } else {
+  } 
+  else 
+  {
     digitalWrite(PIR_Led, HIGH);
   }
 
-  if(digitalRead(PIR_Button)==LOW) {
+  if(digitalRead(PIR_Button)==LOW) 
+  {
     delay(20);
-    if(digitalRead(PIR_Button)==LOW) {
+    if(digitalRead(PIR_Button)==LOW) 
+    {
       //Serial.println("Pressed");
       if(light_value == 0)
       {
         digitalWrite(PIR_Light, HIGH);
         light_value = 1;
       }
-      else {
+      else 
+      {
         digitalWrite(PIR_Light, LOW);
         light_value = 0;
       }
@@ -91,25 +99,35 @@ void getPIR()
 
 void getMQ(float &value)
 {
-  value = analogRead(MQ_Out);
+  value = analogRead(MQ_Data);
   if(value >= 500)
   {
-    for (Window_Pos = 0; Window_Pos <= 180; Window_Pos += 1) 
-    {
-      Window_Servo.write(Window_Pos);
-      delay(15);             
-    }
-    break;
+    getServoTrue(Window_Pos, Window_Servo);
+    getServoTrue(Door_Pos, Door_Servo);
+    digitalWrite(MQ_Fan, HIGH);
+    digitalWrite(MQ_Led, HIGH);
   }
   else
   {
-    for (Window_Pos = 180; Window_Pos >= 0; Window_Pos -= 1) 
-    {
-      Window_Servo.write(Window_Pos);
-      delay(15);             
-    }
-    break;
+    getServoFalse(Door_Pos, Door_Servo);
+    getServoFalse(Window_Pos, Window_Servo);
+    digitalWrite(MQ_Fan, LOW);
+    digitalWrite(MQ_Led, LOW);
   }
+}
+
+void getServoTrue(bool &value, Servo &servo)
+{
+  value = !value;
+  servo.write(0);  
+  delay(1000);
+}
+
+void getServoFalse(bool &value, Servo &servo)
+{
+  value = !value;
+  servo.write(180);   
+  delay(1000);
 }
 
 void loop() {
