@@ -1,0 +1,1 @@
+Mô phỏng lại các module báo cháy, kiểm soát nhiệt độ, độ ẩm, đèn tự động, cửa tự động
